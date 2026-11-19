@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minute Ledger · 回测工作台</title>
 <style>*{box-sizing:border-box}body{margin:0;font:14px system-ui,"Microsoft YaHei",sans-serif;background:#f4f5ef;color:#23362c}nav{background:#183f33;color:white;padding:16px 5%;font:600 22px Georgia}main{max-width:1340px;margin:auto;padding:24px}h1{font-size:30px;letter-spacing:-1px}h2{font-size:17px;margin:0 0 12px}.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px}.card,fieldset{background:white;border:1px solid #d5ddd2;border-radius:10px;padding:16px;margin:0 0 12px}fieldset{min-width:0}legend{font-weight:bold}label{display:block;color:#53675b;font-size:13px;margin:6px 0}input:not([type=checkbox]),select,textarea{width:100%;padding:7px;border:1px solid #bfcfc2;border-radius:5px;background:#fff;font:inherit}input[type=checkbox]{accent-color:#256347}.pair,.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.assets{display:flex;gap:5px;flex-wrap:wrap}.metrics{grid-template-columns:repeat(4,1fr)}.metrics b{display:block;font:600 21px consolas,monospace;color:#245942;margin-top:6px}.metrics div{border-bottom:1px solid #dae3dc;padding:8px}button{border:0;background:#22573f;color:white;font:inherit;border-radius:6px;padding:9px 14px;cursor:pointer}button:disabled{opacity:.5}form>button{width:100%}.row{display:flex;gap:10px;justify-content:space-between;align-items:center}.chart{width:100%;height:150px}.scroll{overflow:auto}table{border-collapse:collapse;white-space:nowrap;width:100%;font:13px consolas,monospace}th,td{text-align:right;border-bottom:1px solid #e0e6df;padding:8px}p{line-height:1.6}#msg{white-space:pre-wrap;overflow-wrap:anywhere;color:#934627}[hidden]{display:none!important}@media(max-width:720px){main{padding:14px}.layout{display:block}.metrics{grid-template-columns:1fr 1fr}}body{background-color:#07111c;background-image:linear-gradient(#1d425028 1px,transparent 1px),linear-gradient(90deg,#1d425028 1px,transparent 1px);background-size:32px 32px;color:#e5f2f6}
-nav{background:#091725;border-bottom:1px solid #266156;font:700 18px/1.5 Consolas,monospace;letter-spacing:2px;display:flex;align-items:center;gap:12px}nav span{background:#52f4ce;color:#061d19;border-radius:5px;display:grid;place-items:center;width:32px;height:31px;font-size:24px}main{max-width:1440px}h1{font-size:clamp(26px,3vw,40px);margin:12px 0 22px}.layout{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}.card,fieldset{background:#0c1b29;border-color:#274354;box-shadow:0 4px 18px #02091135}.card{padding:18px 20px}fieldset{padding-top:10px}legend,h2{color:#def7f1}legend{padding:0 8px;color:#80efcf}label{color:#afc3ce}input:not([type=checkbox]),select,textarea{background:#08151f;color:#e5f3f8;border-color:#365364;color-scheme:dark}input:focus,select:focus,button:focus-visible{outline:2px solid #58f5d2;outline-offset:2px}.metrics div{background:#102433;border:1px solid #264655;border-radius:6px;color:#adbfcc}.metrics b{color:#62f4cd}.metrics div:nth-child(6) b{color:#ff88bc}button{background:#56efcb;color:#07221c;font-weight:650}.row button{background:#183640;color:#a6f7df;border:1px solid #315964}#msg,#sizeNote,#touchNote{font-size:12px;line-height:1.6;color:#9fb8cc}#msg:not(:empty){margin-bottom:10px}th,td{border-color:#273f4d}th{color:#91b3c1}svg text{fill:#a0b8ca}table tbody tr:nth-child(even){background:#102331}::selection{background:#176b59;color:white}</style>
-<nav><span>∿</span> MINUTE LEDGER</nav><main><h1>短周期策略回测</h1><div class="layout"><form id="form"><fieldset><legend>市场与数据</legend><label>数据来源<select id="source"><option value="example">内置验算样本</option><option value="sim">标的价格仿真</option><option value="csv">导入 CSV</option><option value="official">Polymarket 官方历史</option></select></label><label id="upload" hidden>CSV 文件<input id="file" type="file" accept=".csv"></label><section id="datePanel" hidden><label>历史市场范围<select id="lookup"><option value="dates">按日期区间</option><option value="slug">指定市场链接或 slug</option></select></label><div id="dateFields"><div class="pair"><label>开始日期（UTC）<input id="dateFrom" type="date"></label><label>结束日期（含当天）<input id="dateTo" type="date"></label></div><p id="estimate"></p><details><summary>缺报价如何处理？</summary><p>每分钟取首条有效观测。关键分钟缺报价会向单个合约接口补查。首触前需同时看见两边报价，持仓后只检查买入方向直到退出；缺口可能改变交易时跳过该期。关闭中途止盈止损时以官方结果兑付，期间缺报价的持仓按最近观测估值，可能影响回撤和熔断。</p><p id="gapExamples"></p></details></div></section><label id="marketInput" hidden>已结算市场链接或 slug（空格分隔）<textarea id="slugs"></textarea></label><div class="assets" id="assets"></div><div class="pair"><label>周期<select id="mins"><option>5</option><option>15</option></select></label><label>买入方向<select id="side"><option value="combo">双边挂单＋单边突破</option><option value="ema">EMA 趋势限价挂单</option><option value="touch" selected>先到低价的一方（≤ 阈值）</option><option value="breakout">先向上突破的一方（涨到阈值）</option><option value="Yes">Yes · 买涨（Up）</option><option value="No">No · 买跌（Down）</option></select></label></div></fieldset><fieldset><legend>进场与注码</legend><div class="pair" id="entry"></div><div id="comboFields" hidden><label><input type="checkbox" id="on_up" checked> Yes 买涨挂单</label><div class="pair"><label>Yes 买涨挂单限价<input id="price_up" type="number" required value=".01" step="any" min=".001" max=".999"></label><label>Yes 买涨挂单金额（USD）<input id="amt_up" type="number" required value="1" step="any" min=".01" max="10000000000"></label></div><label><input type="checkbox" id="on_down" checked> No 买跌挂单</label><div class="pair"><label>No 买跌挂单限价<input id="price_down" type="number" required value=".01" step="any" min=".001" max=".999"></label><label>No 买跌挂单金额（USD）<input id="amt_down" type="number" required value="1" step="any" min=".01" max="10000000000"></label></div><label><input type="checkbox" id="on_cross" checked> 先上穿的一方追单</label><div class="pair"><label>先上穿的一方追单突破价<input id="price_cross" type="number" required value=".80" step="any" min=".001" max=".999"></label><label>先上穿的一方追单金额（USD）<input id="amt_cross" type="number" required value="10" step="any" min=".01" max="10000000000"></label></div><label><input type="checkbox" id="cancelOther"> 突破触发时撤销该期剩余挂单</label><p>每期各单独立，挂单金额在开盘预留，先涨单后跌单；可用资金不足整笔则跳过。突破追单用触发时的可用资金。相同观测时刻先处理已有挂单成交。</p></div><div id="emaFields" hidden><label>趋势 K 线周期<select id="frame"><option>5m</option><option>15m</option><option>30m</option><option selected>1h</option><option>2h</option><option>4h</option><option>6h</option><option>12h</option><option>1d</option></select></label><div class="pair"><label>快 EMA 周期<input type="number" id="emaFast" min="2" max="499" required value="24"></label><label>慢 EMA 周期<input type="number" id="emaSlow" min="3" max="500" required value="52"></label></div><label>合约挂买价（美元）<input id="bid" required type="number" min=".001" max=".999" step="any" value=".40"></label><p>每期开盘参考上一根已收盘 K 线。收盘高于两条 EMA 挂涨单，低于两条挂跌单，其余观望。每单预留资金，分钟报价首次低于或等于挂价时按挂价模拟成交。到期或熔断撤单。</p></div><div id="trigger"></div><div id="breakFields" hidden><label>向上突破价<input required id="breakPrice" type="number" min=".001" max=".999" step="any" value=".80"></label><p>分别比较 Yes 和 No 的相邻分钟报价。前一笔低于阈值、当前达到或超过阈值，按当前观测价买入该方向。首分钟只记录价格，同分钟双突破跳过。</p></div><p id="touchNote">从开盘起，先观察到报价大于 0 且不高于触发价的一方入场，每期最多一单。同分钟双触跳过。</p><label>仓位模式<select id="size"><option value="fixed">固定金额</option><option value="risk">权益百分比</option><option value="kelly">半 Kelly</option></select></label><div class="pair" id="money"></div><p id="sizeNote"></p><label>加码规则<select id="cycle"><option value="flat">固定倍率</option><option value="loss">亏损后加码</option><option value="win">盈利后加码</option></select></label><div class="pair" id="stake"></div></fieldset><fieldset><legend>出场与风控</legend><label><input type="checkbox" id="early" checked> 启用中途止盈止损</label><div class="pair" id="limits"></div></fieldset><button id="go">运行回测</button><button type="button" id="cancelRun" hidden>取消读取</button><p id="runState" role="status" aria-live="polite"></p></form><article><div id="msg" role="status"></div><section class="card"><h2 id="title">回测结果</h2><div id="metrics" class="metrics"></div></section><section class="card" id="candlePanel" hidden><h2>标的 K 线与趋势</h2><label>查看资产<select id="chartCoin"></select></label><p id="trendLegend"></p><div id="candles"></div><label>图表截至哪根 K 线<input type="range" id="hourEnd" step="1"></label><p id="barInfo"></p></section><section class="card"><h2>账户权益 · USD</h2><div id="equity"></div></section><section class="card"><h2>水下回撤 · %</h2><div id="dd"></div></section><section class="card"><div class="row"><h2>逐笔交易</h2><button id="save">导出 CSV</button></div><div class="scroll"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="row"><button id="prev">上一页</button><p id="page"></p><button id="next">下一页</button></div></section></article></div></main>
+nav{background:#091725;border-bottom:1px solid #266156;font:700 18px/1.5 Consolas,monospace;letter-spacing:2px;display:flex;align-items:center;gap:12px}nav span{background:#52f4ce;color:#061d19;border-radius:5px;display:grid;place-items:center;width:32px;height:31px;font-size:24px}main{max-width:1440px}h1{font-size:clamp(26px,3vw,40px);margin:12px 0 22px}.layout{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}.card,fieldset{background:#0c1b29;border-color:#274354;box-shadow:0 4px 18px #02091135}.card{padding:18px 20px}fieldset{padding-top:10px}legend,h2{color:#def7f1}legend{padding:0 8px;color:#80efcf}label{color:#afc3ce}input:not([type=checkbox]),select,textarea{background:#08151f;color:#e5f3f8;border-color:#365364;color-scheme:dark}input:focus,select:focus,button:focus-visible{outline:2px solid #58f5d2;outline-offset:2px}.metrics div{background:#102433;border:1px solid #264655;border-radius:6px;color:#adbfcc}.metrics b{color:#62f4cd}.metrics div:nth-child(6) b{color:#ff88bc}button{background:#56efcb;color:#07221c;font-weight:650}.row button{background:#183640;color:#a6f7df;border:1px solid #315964}#msg,#sizeNote,#touchNote{font-size:12px;line-height:1.6;color:#9fb8cc}#msg:not(:empty){margin-bottom:10px}th,td{border-color:#273f4d}th{color:#91b3c1}svg text{fill:#a0b8ca}table tbody tr:nth-child(even){background:#102331}::selection{background:#176b59;color:white}#generatePrompt{margin-top:8px;background:#183640;color:#a6f7df;border:1px solid #315964}#promptPanel .row{margin-bottom:12px}#promptHeading{margin:0}#promptText{resize:vertical;padding:12px;line-height:1.65;font-size:14px}#promptText:focus{outline:2px solid #58f5d2}#copyState{color:#9fb8cc;margin:6px 0 0}#copyState:empty{display:none}#promptError{color:#ffabc8}</style>
+<nav><span>∿</span> MINUTE LEDGER</nav><main><h1>短周期策略回测</h1><div class="layout"><form id="form"><fieldset><legend>市场与数据</legend><label>数据来源<select id="source"><option value="example">内置验算样本</option><option value="sim">标的价格仿真</option><option value="csv">导入 CSV</option><option value="official">Polymarket 官方历史</option></select></label><label id="upload" hidden>CSV 文件<input id="file" type="file" accept=".csv"></label><section id="datePanel" hidden><label>历史市场范围<select id="lookup"><option value="dates">按日期区间</option><option value="slug">指定市场链接或 slug</option></select></label><div id="dateFields"><div class="pair"><label>开始日期（UTC）<input id="dateFrom" type="date"></label><label>结束日期（含当天）<input id="dateTo" type="date"></label></div><p id="estimate"></p><details><summary>缺报价如何处理？</summary><p>每分钟取首条有效观测。关键分钟缺报价会向单个合约接口补查。首触前需同时看见两边报价，持仓后只检查买入方向直到退出；缺口可能改变交易时跳过该期。关闭中途止盈止损时以官方结果兑付，期间缺报价的持仓按最近观测估值，可能影响回撤和熔断。</p><p id="gapExamples"></p></details></div></section><label id="marketInput" hidden>已结算市场链接或 slug（空格分隔）<textarea id="slugs"></textarea></label><div class="assets" id="assets"></div><div class="pair"><label>周期<select id="mins"><option>5</option><option>15</option></select></label><label>买入方向<select id="side"><option value="combo">双边挂单＋单边突破</option><option value="ema">EMA 趋势限价挂单</option><option value="touch" selected>先到低价的一方（≤ 阈值）</option><option value="breakout">先向上突破的一方（涨到阈值）</option><option value="Yes">Yes · 买涨（Up）</option><option value="No">No · 买跌（Down）</option></select></label></div></fieldset><fieldset><legend>进场与注码</legend><div class="pair" id="entry"></div><div id="comboFields" hidden><label><input type="checkbox" id="on_up" checked> Yes 买涨挂单</label><div class="pair"><label>Yes 买涨挂单限价<input id="price_up" type="number" required value=".01" step="any" min=".001" max=".999"></label><label>Yes 买涨挂单金额（USD）<input id="amt_up" type="number" required value="1" step="any" min=".01" max="10000000000"></label></div><label><input type="checkbox" id="on_down" checked> No 买跌挂单</label><div class="pair"><label>No 买跌挂单限价<input id="price_down" type="number" required value=".01" step="any" min=".001" max=".999"></label><label>No 买跌挂单金额（USD）<input id="amt_down" type="number" required value="1" step="any" min=".01" max="10000000000"></label></div><label><input type="checkbox" id="on_cross" checked> 先上穿的一方追单</label><div class="pair"><label>先上穿的一方追单突破价<input id="price_cross" type="number" required value=".80" step="any" min=".001" max=".999"></label><label>先上穿的一方追单金额（USD）<input id="amt_cross" type="number" required value="10" step="any" min=".01" max="10000000000"></label></div><label><input type="checkbox" id="cancelOther"> 突破触发时撤销该期剩余挂单</label><p>每期各单独立，挂单金额在开盘预留，先涨单后跌单；可用资金不足整笔则跳过。突破追单用触发时的可用资金。相同观测时刻先处理已有挂单成交。</p></div><div id="emaFields" hidden><label>趋势 K 线周期<select id="frame"><option>5m</option><option>15m</option><option>30m</option><option selected>1h</option><option>2h</option><option>4h</option><option>6h</option><option>12h</option><option>1d</option></select></label><div class="pair"><label>快 EMA 周期<input type="number" id="emaFast" min="2" max="499" required value="24"></label><label>慢 EMA 周期<input type="number" id="emaSlow" min="3" max="500" required value="52"></label></div><label>合约挂买价（美元）<input id="bid" required type="number" min=".001" max=".999" step="any" value=".40"></label><p>每期开盘参考上一根已收盘 K 线。收盘高于两条 EMA 挂涨单，低于两条挂跌单，其余观望。每单预留资金，分钟报价首次低于或等于挂价时按挂价模拟成交。到期或熔断撤单。</p></div><div id="trigger"></div><div id="breakFields" hidden><label>向上突破价<input required id="breakPrice" type="number" min=".001" max=".999" step="any" value=".80"></label><p>分别比较 Yes 和 No 的相邻分钟报价。前一笔低于阈值、当前达到或超过阈值，按当前观测价买入该方向。首分钟只记录价格，同分钟双突破跳过。</p></div><p id="touchNote">从开盘起，先观察到报价大于 0 且不高于触发价的一方入场，每期最多一单。同分钟双触跳过。</p><label>仓位模式<select id="size"><option value="fixed">固定金额</option><option value="risk">权益百分比</option><option value="kelly">半 Kelly</option></select></label><div class="pair" id="money"></div><p id="sizeNote"></p><label>加码规则<select id="cycle"><option value="flat">固定倍率</option><option value="loss">亏损后加码</option><option value="win">盈利后加码</option></select></label><div class="pair" id="stake"></div></fieldset><fieldset><legend>出场与风控</legend><label><input type="checkbox" id="early" checked> 启用中途止盈止损</label><div class="pair" id="limits"></div></fieldset><button id="go">运行回测</button><button type="button" id="generatePrompt" aria-controls="promptPanel">生成策略 Prompt</button><p id="promptError" role="status" hidden></p><button type="button" id="cancelRun" hidden>取消读取</button><p id="runState" role="status" aria-live="polite"></p></form><article><section class="card" id="promptPanel" aria-labelledby="promptHeading" hidden><div class="row"><h2 id="promptHeading">策略 Prompt</h2><button type="button" id="copyPrompt">复制 Prompt</button></div><textarea id="promptText" aria-label="给 Agent Bot 的策略 Prompt" rows="11" readonly></textarea><p id="copyState" role="status"></p></section><div id="msg" role="status"></div><section class="card"><h2 id="title">回测结果</h2><div id="metrics" class="metrics"></div></section><section class="card" id="candlePanel" hidden><h2>标的 K 线与趋势</h2><label>查看资产<select id="chartCoin"></select></label><p id="trendLegend"></p><div id="candles"></div><label>图表截至哪根 K 线<input type="range" id="hourEnd" step="1"></label><p id="barInfo"></p></section><section class="card"><h2>账户权益 · USD</h2><div id="equity"></div></section><section class="card"><h2>水下回撤 · %</h2><div id="dd"></div></section><section class="card"><div class="row"><h2>逐笔交易</h2><button id="save">导出 CSV</button></div><div class="scroll"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="row"><button id="prev">上一页</button><p id="page"></p><button id="next">下一页</button></div></section></article></div></main>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), n=id=>Number($(id).value);
@@ -334,14 +334,118 @@ function sourceUI(){const active=$('source').value==='official',dates=$('lookup'
 $('source').onchange=$('lookup').onchange=sourceUI;
 for(const id of ['assets','mins','dateFrom','dateTo'])$(id).addEventListener('change',dateHint);
 $('cancelRun').onclick=()=>dateJob?.abort();sourceUI();
-async function run(e){e?.preventDefault();$('msg').textContent='';$('go').disabled=true;try{const c={assets:[...$('assets').querySelectorAll(':checked')].map(x=>x.value),m:n('mins'),no:$('side').value==='No',combo:$('side').value==='combo',trend:$('side').value==='ema',frame:$('frame').value,fast:n('emaFast'),slow:n('emaSlow'),bid:n('bid'),touch:['touch','breakout'].includes($('side').value),breakout:$('side').value==='breakout',limit:n($('side').value==='breakout'?'breakPrice':'triggerPrice'),cap:n('capital'),size:$('size').value,cycle:$('cycle').value,early:$('early').checked,fee:n('fee')/10000};for(const k of ['low','high','tp','sl','protect','breaker','fixed','risk','step','prob'])c[k]=n(k);if(c.combo){
+function readStrategy(){const c={assets:[...$('assets').querySelectorAll(':checked')].map(x=>x.value),m:n('mins'),no:$('side').value==='No',combo:$('side').value==='combo',trend:$('side').value==='ema',frame:$('frame').value,fast:n('emaFast'),slow:n('emaSlow'),bid:n('bid'),touch:['touch','breakout'].includes($('side').value),breakout:$('side').value==='breakout',limit:n($('side').value==='breakout'?'breakPrice':'triggerPrice'),cap:n('capital'),size:$('size').value,cycle:$('cycle').value,early:$('early').checked,fee:n('fee')/10000};for(const k of ['low','high','tp','sl','protect','breaker','fixed','risk','step','prob'])c[k]=n(k);if(c.combo){
  c.legs=Object.fromEntries(['up','down','cross'].map(k=>[k,{on:$('on_'+k).checked,price:n('price_'+k),stake:n('amt_'+k)}]));
  c.cancelOther=$('cancelOther').checked;
  const active=Object.values(c.legs).filter(o=>o.on);
  if(!active.length||active.some(o=>!(o.price>0&&o.price<1&&o.stake>=.01)))fail('请启用至少一单，并填写有效价格和金额。');
  if(c.early&&active.some(o=>o.price<=c.sl||o.price>=c.tp))fail('提前退出时止损须低于所有启用单的价格，止盈须高于所有启用单的价格。');
  }
- if(c.breakout&&c.early&&!(c.sl<c.limit&&c.tp>c.limit))fail('启用中途平仓时，止盈价须高于突破价，止损价须低于突破价；持有到期可关闭止盈止损。');if(c.trend&&(!frames[c.frame]||![c.fast,c.slow].every(Number.isInteger)||c.fast<2||c.fast>=c.slow||c.slow>500||!(c.bid>0&&c.bid<1)))fail('EMA 周期需为整数，2 ≤ 快线 < 慢线 ≤ 500，挂价须在 0 与 1 之间。');if(!c.assets.length||!Number.isInteger(c.protect)||(!c.combo&&!c.trend&&!c.touch&&c.low>c.high)||!c.combo&&c.early&&!(c.trend?(c.sl<c.bid&&c.tp>c.bid):c.touch?(c.sl<c.limit&&c.tp>c.limit):(c.sl<c.low&&c.tp>c.high)))fail('请检查资产、价格区间、止盈止损与连败轮数。');$('candlePanel').hidden=true;const source=$('source').value,srcLabel=$('source').selectedOptions[0].text;let raw=sample;if(source==='csv'){if(!$('file').files[0])fail('请选择 CSV 文件');raw=await $('file').files[0].text()}
+ if(c.breakout&&c.early&&!(c.sl<c.limit&&c.tp>c.limit))fail('启用中途平仓时，止盈价须高于突破价，止损价须低于突破价；持有到期可关闭止盈止损。');if(c.trend&&(!frames[c.frame]||![c.fast,c.slow].every(Number.isInteger)||c.fast<2||c.fast>=c.slow||c.slow>500||!(c.bid>0&&c.bid<1)))fail('EMA 周期需为整数，2 ≤ 快线 < 慢线 ≤ 500，挂价须在 0 与 1 之间。');if(!c.assets.length||!Number.isInteger(c.protect)||(!c.combo&&!c.trend&&!c.touch&&c.low>c.high)||!c.combo&&c.early&&!(c.trend?(c.sl<c.bid&&c.tp>c.bid):c.touch?(c.sl<c.limit&&c.tp>c.limit):(c.sl<c.low&&c.tp>c.high)))fail('请检查资产、价格区间、止盈止损与连败轮数。');return c}
+function promptScope(c) {
+ const source = $('source').value;
+ if (source === 'official' && $('lookup').value === 'dates') {
+  dateWindow(c);
+  return 'Polymarket 官方历史，UTC ' + $('dateFrom').value + ' 至 ' + $('dateTo').value + '，含结束日，只取已结束的周期。';
+ }
+ if (source === 'official') {
+  const ids = $('slugs').value.trim().split(/\s+/).map(value => value.replace(/^https?:\/\/(?:www\.)?polymarket\.com\/(?:[a-z]{2}\/)?event\//i, '').split(/[/?#]/)[0]);
+  if (ids.length > 100 || ids.some(id => !/^(btc|eth|bnb|sol)-updown-(5|15)m-\d{10}$/.test(id))) fail('请填写有效的市场链接或 slug，最多 100 个。');
+  return 'Polymarket 官方历史，仅回放以下已结算市场：' + [...new Set(ids)].join('、') + '。';
+ }
+ if (source === 'csv') return '用户提供的 CSV。复现时另行读取 CSV，若缺少 No 报价，按 1 − Yes 估算并标记。';
+ return source === 'sim' ? 'Minute Ledger 标的价格仿真，合约报价为模拟值。' : 'Minute Ledger 内置 BTC 5 分钟验算样本。复现样本结果时需使用同一份数据。';
+}
+
+function strategyPrompt(c, scope) {
+ const lines = [
+  '请按以下规则实现一个 Polymarket 涨跌预测市场策略，并用历史报价回测。所有金额单位为 USD，所有合约价格均为每份价格。',
+  '',
+  '市场与时间',
+  '资产：' + c.assets.join('、') + '。每个资产每 ' + c.m + ' 分钟为一个独立回合，按 UTC 对齐，各资产共用同一账户。',
+  'Yes 对应 Up（买涨），No 对应 Down（买跌）。按市场 outcome 匹配合约，每分钟使用首条有效报价。',
+  '当前回测数据：' + scope,
+  '',
+  '入场规则'
+ ];
+ const crossRule = price => '逐分钟比较两边的相邻报价。上一分钟低于 ' + price + '、当前达到或超过 ' + price + ' 时触发，买先上穿的一方，按当前观测价模拟成交。首分钟只记录报价。同一分钟两边都上穿则跳过本回合的突破单。';
+ if (c.combo) {
+  lines.push('双边挂单＋单边突破。每个回合只执行以下启用的订单，每项最多成交一次。');
+  for (const [key, label] of [['up','Yes 买涨'], ['down','No 买跌']]) {
+   const leg = c.legs[key];
+   if (leg.on) lines.push('• ' + label + '：开盘挂限价 ' + leg.price + '，基础金额 $' + leg.stake + '。');
+  }
+  const limits = c.legs.up.on || c.legs.down.on;
+  if (limits) lines.push('开盘为挂单预留全额资金，按 Yes、No 顺序处理已启用的方向。报价大于 0 且不高于挂价时，按挂价模拟成交。');
+  const cross = c.legs.cross;
+  if (cross.on) {
+   lines.push('• 突破追单：基础金额 $' + cross.stake + '。' + crossRule(cross.price));
+   if (limits) lines.push('突破追单独立于低价挂单，无需等待低价单成交。同一观测时刻先处理低价挂单成交。' + (c.cancelOther ? '突破触发即撤销该资产该回合剩余挂单，释放预留资金后再尝试追单。' : '突破后保留该回合尚未成交的挂单。'));
+  }
+  lines.push('任一订单的可用现金不足整笔注码时，跳过该单。');
+ } else if (c.trend) {
+  lines.push('每期开盘取该资产最近一根已收盘的 ' + c.frame + ' 标的 K 线，按收盘价计算 EMA ' + c.fast + ' 和 EMA ' + c.slow + '。收盘价严格高于两线只挂 Yes，严格低于两线只挂 No，否则观望。K 线缺失或预热不足时跳过。');
+  lines.push('预留注码，挂限价 ' + c.bid + '。首次观测到 0 < 合约报价 ≤ ' + c.bid + ' 时按挂价模拟成交，每期最多一单。');
+ } else if (c.breakout) {
+  lines.push(crossRule(c.limit) + ' 每期最多一笔。');
+ } else if (c.touch) {
+  lines.push('每期监测两边报价，首次出现 0 < 报价 ≤ ' + c.limit + ' 时按该方向当前报价买入。开盘第一条报价也可触发，同分钟两边均触价则跳过，每期最多一单。');
+ } else {
+  lines.push('仅买 ' + (c.no ? 'No（跌）' : 'Yes（涨）') + '。仅检查每期开盘首分钟该方向报价，位于 [' + c.low + ', ' + c.high + '] 时按该报价买入，否则跳过整期。');
+ }
+ lines.push('', '资金与风控', '初始账户资金 $' + c.cap + '。成交费 ' + c.fee * 10000 + ' bp，买入与提前卖出计费，到期兑付免收成交费。');
+ if (!c.combo) {
+  if (c.size === 'fixed') lines.push('每单基础金额 $' + c.fixed + '。');
+  if (c.size === 'risk') lines.push('每单基础金额为当时账户权益的 ' + c.risk + '%。');
+  if (c.size === 'kelly') lines.push('采用半 Kelly。预估胜率 p = ' + c.prob + '，成本 q = 入场价格 × (1 + 费率)。q < 1 时基础金额为权益 × 0.5 × max(0, (p − q) / (1 − q))，否则为 0。');
+  lines.push('最终注码以可用现金为上限，低于 $0.01 跳过。');
+ }
+ if (c.cycle === 'flat') lines.push('固定倍率，始终使用基础注码。');
+ else {
+  const loss = c.cycle === 'loss';
+  lines.push('按全账户已平仓交易统计连续' + (loss ? '亏损' : '盈利') + '笔数 n。下一单金额 = 基础金额 × (1 + ' + c.step + '%) ^ min(n, 100)，连续记录中断后恢复基础金额。' + (loss ? '当 n ≥ ' + c.protect + ' 时停止加码，使用基础金额。' : ''));
+ }
+ lines.push(c.early ? '成交后从下一条分钟报价起检查。报价 ≥ ' + c.tp + ' 止盈，报价 ≤ ' + c.sl + ' 止损，按该次观测价平仓。其余仓位持有到期。' : '所有已成交仓位均持有到期。');
+ lines.push('按结算结果，胜方每份兑付 $1，负方 $0。回合结束时释放未成交挂单的预留资金。');
+ lines.push('权益 = 可用现金 + 挂单预留资金 + 持仓市值。相对 UTC 当日权益峰值回撤达到 ' + c.breaker + '% 时，撤销未成交挂单、当日停止开新仓。已有仓位按原出场规则处理，下一 UTC 日重启。');
+ lines.push('', '回测输出', '缺少会影响交易判断的关键报价时，记录并跳过该回合。按时间列出每笔成交的资产、方向、入场规则、进出价格、金额、盈亏和账户权益，汇总胜率、总盈亏和最大回撤。');
+ return lines.join('\n');
+}
+
+function clearPrompt() {
+ $('promptPanel').hidden = true;
+ $('promptText').value = '';
+ $('copyState').textContent = '';
+ $('promptError').hidden = true;
+}
+for (const event of ['input', 'change']) $('form').addEventListener(event, clearPrompt);
+$('generatePrompt').onclick = () => {
+ clearPrompt();
+ if (!$('form').reportValidity()) return;
+ try {
+  const config = readStrategy();
+  $('promptText').value = strategyPrompt(config, promptScope(config));
+  $('promptPanel').hidden = false;
+  $('promptText').focus();
+ } catch (error) {
+  $('promptError').textContent = error.message;
+  $('promptError').hidden = false;
+ }
+};
+$('copyPrompt').onclick = async () => {
+ const field = $('promptText');
+ if (!field.value) return;
+ try {
+  await navigator.clipboard.writeText(field.value);
+  $('copyState').textContent = '已复制，可粘贴给 Agent Bot。';
+ } catch {
+  field.focus();
+  field.select();
+  $('copyState').textContent = '已选中全文，请使用设备的复制操作。';
+ }
+};
+
+async function run(e){e?.preventDefault();$('msg').textContent='';$('go').disabled=true;try{const c=readStrategy();$('candlePanel').hidden=true;const source=$('source').value,srcLabel=$('source').selectedOptions[0].text;let raw=sample;if(source==='csv'){if(!$('file').files[0])fail('请选择 CSV 文件');raw=await $('file').files[0].text()}
 const load=cfg=>source==='official'?official(cfg):source==='sim'?simulate(cfg):loadCSV(raw,cfg);
 let r;
 if(source==='official'&&$('lookup').value==='dates'){
