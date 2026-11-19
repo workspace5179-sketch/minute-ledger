@@ -2,7 +2,7 @@
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minute Ledger · 回测工作台</title>
 <style>*{box-sizing:border-box}body{margin:0;font:14px system-ui,"Microsoft YaHei",sans-serif;background:#f4f5ef;color:#23362c}nav{background:#183f33;color:white;padding:16px 5%;font:600 22px Georgia}main{max-width:1340px;margin:auto;padding:24px}h1{font-size:30px;letter-spacing:-1px}h2{font-size:17px;margin:0 0 12px}.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px}.card,fieldset{background:white;border:1px solid #d5ddd2;border-radius:10px;padding:16px;margin:0 0 12px}fieldset{min-width:0}legend{font-weight:bold}label{display:block;color:#53675b;font-size:13px;margin:6px 0}input:not([type=checkbox]),select,textarea{width:100%;padding:7px;border:1px solid #bfcfc2;border-radius:5px;background:#fff;font:inherit}input[type=checkbox]{accent-color:#256347}.pair,.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.assets{display:flex;gap:5px;flex-wrap:wrap}.metrics{grid-template-columns:repeat(4,1fr)}.metrics b{display:block;font:600 21px consolas,monospace;color:#245942;margin-top:6px}.metrics div{border-bottom:1px solid #dae3dc;padding:8px}button{border:0;background:#22573f;color:white;font:inherit;border-radius:6px;padding:9px 14px;cursor:pointer}button:disabled{opacity:.5}form>button{width:100%}.row{display:flex;gap:10px;justify-content:space-between;align-items:center}.chart{width:100%;height:150px}.scroll{overflow:auto}table{border-collapse:collapse;white-space:nowrap;width:100%;font:13px consolas,monospace}th,td{text-align:right;border-bottom:1px solid #e0e6df;padding:8px}p{line-height:1.6}#msg{white-space:pre-wrap;overflow-wrap:anywhere;color:#934627}[hidden]{display:none!important}@media(max-width:720px){main{padding:14px}.layout{display:block}.metrics{grid-template-columns:1fr 1fr}}body{background-color:#07111c;background-image:linear-gradient(#1d425028 1px,transparent 1px),linear-gradient(90deg,#1d425028 1px,transparent 1px);background-size:32px 32px;color:#e5f2f6}
 nav{background:#091725;border-bottom:1px solid #266156;font:700 18px/1.5 Consolas,monospace;letter-spacing:2px;display:flex;align-items:center;gap:12px}nav span{background:#52f4ce;color:#061d19;border-radius:5px;display:grid;place-items:center;width:32px;height:31px;font-size:24px}main{max-width:1440px}h1{font-size:clamp(26px,3vw,40px);margin:12px 0 22px}.layout{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}.card,fieldset{background:#0c1b29;border-color:#274354;box-shadow:0 4px 18px #02091135}.card{padding:18px 20px}fieldset{padding-top:10px}legend,h2{color:#def7f1}legend{padding:0 8px;color:#80efcf}label{color:#afc3ce}input:not([type=checkbox]),select,textarea{background:#08151f;color:#e5f3f8;border-color:#365364;color-scheme:dark}input:focus,select:focus,button:focus-visible{outline:2px solid #58f5d2;outline-offset:2px}.metrics div{background:#102433;border:1px solid #264655;border-radius:6px;color:#adbfcc}.metrics b{color:#62f4cd}.metrics div:nth-child(6) b{color:#ff88bc}button{background:#56efcb;color:#07221c;font-weight:650}.row button{background:#183640;color:#a6f7df;border:1px solid #315964}#msg,#sizeNote,#touchNote{font-size:12px;line-height:1.6;color:#9fb8cc}#msg:not(:empty){margin-bottom:10px}th,td{border-color:#273f4d}th{color:#91b3c1}svg text{fill:#a0b8ca}table tbody tr:nth-child(even){background:#102331}::selection{background:#176b59;color:white}</style>
-<nav><span>∿</span> MINUTE LEDGER</nav><main><h1>短周期策略回测</h1><div class="layout"><form id="form"><fieldset><legend>市场与数据</legend><label>数据来源<select id="source"><option value="example">内置验算样本</option><option value="sim">标的价格仿真</option><option value="csv">导入 CSV</option><option value="official">Polymarket 官方历史</option></select></label><label id="upload" hidden>CSV 文件<input id="file" type="file" accept=".csv"></label><section id="datePanel" hidden><label>历史市场范围<select id="lookup"><option value="dates">按日期区间</option><option value="slug">指定市场链接或 slug</option></select></label><div id="dateFields"><div class="pair"><label>开始日期（UTC）<input id="dateFrom" type="date"></label><label>结束日期（含当天）<input id="dateTo" type="date"></label></div><p id="estimate"></p></div></section><label id="marketInput" hidden>已结算市场链接或 slug（空格分隔）<textarea id="slugs"></textarea></label><div class="assets" id="assets"></div><div class="pair"><label>周期<select id="mins"><option>5</option><option>15</option></select></label><label>买入方向<select id="side"><option value="touch" selected>先触价的一方</option><option>Yes</option><option>No</option></select></label></div></fieldset><fieldset><legend>进场与注码</legend><div class="pair" id="entry"></div><div id="trigger"></div><p id="touchNote">从开盘起，先观察到报价大于 0 且不高于触发价的一方入场，每期最多一单。同分钟双触跳过。</p><label>仓位模式<select id="size"><option value="fixed">固定金额</option><option value="risk">权益百分比</option><option value="kelly">半 Kelly</option></select></label><div class="pair" id="money"></div><p id="sizeNote"></p><label>加码规则<select id="cycle"><option value="flat">固定倍率</option><option value="loss">亏损后加码</option><option value="win">盈利后加码</option></select></label><div class="pair" id="stake"></div></fieldset><fieldset><legend>出场与风控</legend><label><input type="checkbox" id="early" checked> 启用中途止盈止损</label><div class="pair" id="limits"></div></fieldset><button id="go">运行回测</button><button type="button" id="cancelRun" hidden>取消读取</button><p id="runState" role="status" aria-live="polite"></p></form><article><div id="msg" role="status"></div><section class="card"><h2 id="title">回测结果</h2><div id="metrics" class="metrics"></div></section><section class="card"><h2>账户权益 · USD</h2><div id="equity"></div></section><section class="card"><h2>水下回撤 · %</h2><div id="dd"></div></section><section class="card"><div class="row"><h2>逐笔交易</h2><button id="save">导出 CSV</button></div><div class="scroll"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="row"><button id="prev">上一页</button><p id="page"></p><button id="next">下一页</button></div></section></article></div></main>
+<nav><span>∿</span> MINUTE LEDGER</nav><main><h1>短周期策略回测</h1><div class="layout"><form id="form"><fieldset><legend>市场与数据</legend><label>数据来源<select id="source"><option value="example">内置验算样本</option><option value="sim">标的价格仿真</option><option value="csv">导入 CSV</option><option value="official">Polymarket 官方历史</option></select></label><label id="upload" hidden>CSV 文件<input id="file" type="file" accept=".csv"></label><section id="datePanel" hidden><label>历史市场范围<select id="lookup"><option value="dates">按日期区间</option><option value="slug">指定市场链接或 slug</option></select></label><div id="dateFields"><div class="pair"><label>开始日期（UTC）<input id="dateFrom" type="date"></label><label>结束日期（含当天）<input id="dateTo" type="date"></label></div><p id="estimate"></p><details><summary>缺报价如何处理？</summary><p>每分钟取首条有效观测。关键分钟缺报价会向单个合约接口补查。首触前需同时看见两边报价，持仓后只检查买入方向直到退出；缺口可能改变交易时跳过该期。关闭中途止盈止损时以官方结果兑付，期间缺报价的持仓按最近观测估值，可能影响回撤和熔断。</p><p id="gapExamples"></p></details></div></section><label id="marketInput" hidden>已结算市场链接或 slug（空格分隔）<textarea id="slugs"></textarea></label><div class="assets" id="assets"></div><div class="pair"><label>周期<select id="mins"><option>5</option><option>15</option></select></label><label>买入方向<select id="side"><option value="touch" selected>先触价的一方</option><option>Yes</option><option>No</option></select></label></div></fieldset><fieldset><legend>进场与注码</legend><div class="pair" id="entry"></div><div id="trigger"></div><p id="touchNote">从开盘起，先观察到报价大于 0 且不高于触发价的一方入场，每期最多一单。同分钟双触跳过。</p><label>仓位模式<select id="size"><option value="fixed">固定金额</option><option value="risk">权益百分比</option><option value="kelly">半 Kelly</option></select></label><div class="pair" id="money"></div><p id="sizeNote"></p><label>加码规则<select id="cycle"><option value="flat">固定倍率</option><option value="loss">亏损后加码</option><option value="win">盈利后加码</option></select></label><div class="pair" id="stake"></div></fieldset><fieldset><legend>出场与风控</legend><label><input type="checkbox" id="early" checked> 启用中途止盈止损</label><div class="pair" id="limits"></div></fieldset><button id="go">运行回测</button><button type="button" id="cancelRun" hidden>取消读取</button><p id="runState" role="status" aria-live="polite"></p></form><article><div id="msg" role="status"></div><section class="card"><h2 id="title">回测结果</h2><div id="metrics" class="metrics"></div></section><section class="card"><h2>账户权益 · USD</h2><div id="equity"></div></section><section class="card"><h2>水下回撤 · %</h2><div id="dd"></div></section><section class="card"><div class="row"><h2>逐笔交易</h2><button id="save">导出 CSV</button></div><div class="scroll"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="row"><button id="prev">上一页</button><p id="page"></p><button id="next">下一页</button></div></section></article></div></main>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), n=id=>Number($(id).value);
@@ -87,17 +87,46 @@ function marks(raw,t,m){
  const bars=Array(m).fill(null);
  for(const b of raw||[]){const j=Math.floor((b.t-t)/60);
   if(j>=0&&j<m&&Number.isFinite(b.p)&&b.p>=0&&b.p<=1&&(!bars[j]||bars[j].t>b.t))bars[j]=b}
- return bars.every(Boolean)?{p:bars.map(b=>b.p),times:bars.map(b=>b.t)}:null
+ return bars
 }
+function quoteDecision(job,picks,history,c){
+ const series=picks.map(({token})=>marks(history[token.token_id],job.t,c.m));
+ const partial=series.some(bars=>bars.includes(null));
+ const missing=(i,j,phase)=>({gap:phase,detail:job.a+' '+utc(job.t+j*60)+' UTC '+(picks[i].no?'No':'Yes')});
+ let side=0,entry=0;
+ if(c.touch){
+  for(;entry<c.m;entry++){
+   for(let i=0;i<series.length;i++)if(!series[i][entry])return missing(i,entry,'entry');
+   const hits=series.map(b=>b[entry].p>0&&b[entry].p<=c.limit);
+   if(hits[0]&&hits[1])return {partial,tie:true};
+   if(hits.some(Boolean)){side=hits.indexOf(true);break}
+  }
+  if(entry===c.m)return {partial};
+ }else{
+  if(!series[0][0])return missing(0,0,'entry');
+  const price=series[0][0].p;
+  if(price<c.low||price>c.high)return {partial};
+ }
+ const samples=[series[side][entry]];
+ for(let j=entry+1;j<c.m;j++){
+  const bar=series[side][j];
+  if(!bar){if(c.early)return missing(side,j,'exit');continue}
+  samples.push(bar);
+  if(c.early&&(bar.p>=c.tp||bar.p<=c.sl))break;
+ }
+ return {partial,market:{...job,no:picks[side].no,pay:+picks[side].token.winner,p:samples.map(b=>b.p),times:samples.map(b=>b.t)}}
+}
+
 async function fromDates(c,signal){
+ $('gapExamples').textContent='';
  const [start,end]=dateWindow(c),width=c.m*60,total=(end-start)/width*c.assets.length;
- const ledger=makeLedger(c);let checked=0,covered=0,ties=0,absent=0,incomplete=0;
+ const ledger=makeLedger(c);let checked=0,covered=0,ties=0,absent=0,incomplete=0,entryGap=0,exitGap=0,reused=0,refetched=0;const examples=[];
  const toArray=x=>typeof x==='string'?JSON.parse(x):x;
  for(let base=start;base<end;){
   signal.throwIfAborted();
   const stop=Math.min(end,base+Math.floor(40/c.assets.length)*width),jobs=new Map();
   for(let t=base;t<stop;t+=width)for(const a of c.assets)jobs.set(a.toLowerCase()+'-updown-'+c.m+'m-'+t,{a,t});
-  const progress=()=>checked.toLocaleString()+' / '+total.toLocaleString()+' 个资产周期 · 可回放 '+covered+' · 未找到已结算市场 '+absent+' · 报价不全 '+incomplete;
+  const progress=()=>checked.toLocaleString()+' / '+total.toLocaleString()+' 个资产周期 · 可回放 '+covered+' · 未找到已结算市场 '+absent+' · 结算或方向不明 '+incomplete+' · 入场缺报价 '+entryGap+' · 持仓缺报价 '+exitGap+' · 补查后可用 '+refetched+' · 含缺口仍可判定 '+reused;
   $('runState').textContent='读取 '+utc(base).slice(0,16)+' UTC　'+progress();
   const query=new URLSearchParams({closed:'true',limit:'40'});for(const id of jobs.keys())query.append('slug',id);
   const metas=await rangeJSON('https://gamma-api.polymarket.com/markets?'+query,signal),pending=[],selected=[];
@@ -131,15 +160,35 @@ async function fromDates(c,signal){
     history[p.token.token_id]=result.history
    }))
   }
-  for(const {job,picks} of pending){
-   const pair=picks.map(({no,token})=>{const b=marks(history[token.token_id],job.t,c.m);return b&&{...job,...b,no,pay:+token.winner}});
-   if(pair.some(x=>!x)){incomplete++;continue}covered++;
-   if(c.touch){const scan=firstTouch([pair[0]],[pair[1]],c.limit);selected.push(...scan.chosen);ties+=scan.ties}else selected.push(pair[0])
+  // Retry only when a missing sample prevents a strategy decision.
+  for(let k=0;k<pending.length;k+=4){
+   const batch=pending.slice(k,k+4);
+   const outcomes=await Promise.all(batch.map(async ({job,picks})=>{
+    let result=quoteDecision(job,picks,history,c);
+    if(!result.gap||!useBatch)return result;
+    for(const {token} of picks){
+     const id=token.token_id,old=history[id]||[];
+     if(!marks(old,job.t,c.m).includes(null))continue;
+     const q=new URLSearchParams({market:id,startTs:job.t,endTs:job.t+width,fidelity:1});
+     const reply=await rangeJSON('https://clob.polymarket.com/prices-history?'+q,signal);
+     history[id]=old.concat(reply.history||[]);
+    }
+    result=quoteDecision(job,picks,history,c);if(!result.gap)refetched++;return result
+   }));
+   for(const result of outcomes){
+    if(result.gap){
+     if(result.gap==='entry')entryGap++;else exitGap++;
+     if(examples.length<8)examples.push(result.detail+'（'+(result.gap==='entry'?'入场':'持仓')+'）');
+     continue
+    }
+    covered++;if(result.partial)reused++;if(result.tie)ties++;if(result.market)selected.push(result.market)
+   }
   }
   ledger.consume(selected,[base,stop]);checked+=jobs.size;base=stop;
   $('runState').textContent=progress()
  }
- if(!covered)fail('区间内没有可回放的完整市场。'+$('runState').textContent);
+ $('gapExamples').textContent=examples.length?'缺失观测示例（最多 8 条）：'+examples.join('；'):'';
+ if(!covered)fail('该区间没有足够数据判定策略。'+$('runState').textContent);
  $('msg').textContent=$('dateFrom').value+' 至 '+$('dateTo').value+'（UTC） · '+$('runState').textContent+' · 同分钟双触 '+ties;
  return ledger.finish()
 }
